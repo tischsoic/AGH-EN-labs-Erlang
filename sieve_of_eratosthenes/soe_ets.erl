@@ -9,7 +9,7 @@ get_primes(Max_numb) ->
     ets:insert(numbers, {2}),
     Primes = ets:match(numbers, '$1'),
     ets:delete(numbers),
-    Primes.
+    lists:flatten(Primes).
 
 set_numbers(Max_numb) ->
     ets:insert(numbers, {5}),
