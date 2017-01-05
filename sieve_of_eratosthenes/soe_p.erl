@@ -1,5 +1,5 @@
 -module('soe_p').
--export([get_primes/2, sieve_thread_main/3, sieve_thread/2]).
+-export([get_primes/2, sieve_thread_main/3, sieve_thread/2, set_numbers/1]).
 
 get_primes(2, _) -> [2];
 get_primes(3, _) -> [2, 3];
