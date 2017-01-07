@@ -88,8 +88,8 @@ get_next_prime(Numbers_tree, Previous_prime) ->
     end.
 
 delete_multiples(Numbers_tree, Base, Step, Max) ->
-    Numbers_tree_sieved = delete_multiples_(Numbers_tree, Base, Step, Max),
-    gb_trees:balance(Numbers_tree_sieved).
+    Numbers_tree_sieved = delete_multiples_(Numbers_tree, Base, Step, Max).
+    %gb_trees:balance(Numbers_tree_sieved).
 
 delete_multiples_(Numbers_tree, Base, Step, Max) ->
     if
