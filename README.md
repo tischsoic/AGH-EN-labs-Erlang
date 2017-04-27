@@ -16,4 +16,4 @@ in system shell to open Erlng shell and then e.g.:
 c("map_async").
 ```
 
-to compile given file. **Remember about dot '.'.**
+to compile given file. **Remember about '.' (dot).**
