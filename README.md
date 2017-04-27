@@ -4,14 +4,13 @@ Repository contains various files written while learning Erlang language for uni
 
 ------------------------------------------------
 
-Run examples by executing:
 To run examples, after installing Erlang env in operating system, run
 
 ```sh
 erl
 ```
 
-to open Erlng shell and then e.g.:
+in system shell to open Erlng shell and then e.g.:
 
 ```sh
 c("map_async").
