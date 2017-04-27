@@ -10,17 +10,20 @@ get_primes(Max_numb, Threads_no) ->
 
 get_base_number(Reference_number) ->
     if
-        (Reference_number rem 4) == 0 ->
-            Reference_number + 3;
-        (Reference_number rem 2) == 0 ->
-            Reference_number + 1;
+        ((Reference_number rem 3) == 0) or ((Reference_number rem 2) == 0) ->
+            get_base_number(Reference_number + 1);
         true ->
             Reference_number
     end.
 
 set_numbers(From, To, Tree) ->
     Base = get_base_number(From),
-    set_numbers_2(To, Base, Tree).
+    if
+        Base rem 6 == 1 ->
+            set_numbers_4(To, Base, Tree);
+        true ->
+            set_numbers_2(To, Base, Tree)
+    end.
 
 set_numbers_2(Max_numb, Base, Tree) ->
     Next_numb = Base + 2,
@@ -42,35 +45,17 @@ set_numbers_4(Max_numb, Base, Tree) ->
             set_numbers_2(Max_numb, Next_numb, Tree_with_next)
     end.
 
-%set_numbers(Max_numb) ->
-    %[5 | set_numbers_24(Max_numb, 5)].
-%
-%set_numbers_24(Max_numb, Base) ->
-    %set_numbers_24_(Max_numb, Base, [2, 4]).
-%
-%set_numbers_24_(Max_numb, Base, Wheel) ->
-    %[Incrementer_1, Incrementer_2] = Wheel,
-    %Next_numb = Base + Incrementer_1,
-    %if
-        %Next_numb > Max_numb ->
-            %[];
-        %true ->
-            %[Next_numb | set_numbers_24_(Max_numb, Next_numb, [Incrementer_2, Incrementer_1])]
-    %end.
 
 initialise_thread_tree({From, To}) ->
     Numbers_tree = gb_trees:empty(),
     set_numbers(From, To, Numbers_tree).
 
 sieve_thread_main(Numbers_range, Max_numb, Parent_pid) ->
-    %io:fwrite("tutaj 2"),
     Numbers_tree = initialise_thread_tree(Numbers_range),
-    %io:fwrite("sieve_thread_main: tree " ++ io_lib:format("~p", [Numbers_range]) ++ "\n"),
     {Local_smallest, _} = gb_trees:smallest(Numbers_tree),
     {Local_largest, _} = gb_trees:largest(Numbers_tree),
     Sieved_tree = sieve_thread_main_(Numbers_tree, Local_smallest, Local_largest, Max_numb, Parent_pid),
     Primes = gb_trees:keys(Sieved_tree),
-    %io:fwrite("tutaj 1"),
     Parent_pid ! {end_of_main},
     Parent_pid ! {primes, self(), Primes}.
 
@@ -79,9 +64,6 @@ get_next_prime(Numbers_tree, Previous_prime) ->
     Current = gb_trees:next(Iterator_from),
     {P1, _, Iterator_from_next_prime} = Current,
     Next = gb_trees:next(Iterator_from_next_prime),
-    %{P2, _, _} = Next,
-    %io:fwrite("get_next_prime: prime" ++ io_lib:format("~p", [P1]) ++ "\n"),
-    %{12, 12} * as,
     case Next of
         none -> none;
         {Prime, _, _} -> Prime
@@ -89,7 +71,6 @@ get_next_prime(Numbers_tree, Previous_prime) ->
 
 delete_multiples(Numbers_tree, Base, Step, Max) ->
     Numbers_tree_sieved = delete_multiples_(Numbers_tree, Base, Step, Max).
-    %gb_trees:balance(Numbers_tree_sieved).
 
 delete_multiples_(Numbers_tree, Base, Step, Max) ->
     if
@@ -102,7 +83,6 @@ delete_multiples_(Numbers_tree, Base, Step, Max) ->
     end.
 
 sieve_thread_main_(Numbers_tree, Prime, Initial_local_largest, Max_numb, Parent_pid) ->
-    % blad za pierwszym razem przekazujemy prime, a nie previous prime!!!!!!!!!!!!!!!
     if
         Prime == none ->
             Numbers_tree;
@@ -110,7 +90,6 @@ sieve_thread_main_(Numbers_tree, Prime, Initial_local_largest, Max_numb, Parent_
             Parent_pid ! {sieving_definite_end},
             Numbers_tree;
         true ->
-            %io:fwrite("m_t: prime" ++ io_lib:format("~p", [Prime]) ++ "\n"),
             Parent_pid ! {prime, Prime},
             Sieved_numbers_tree = delete_multiples(Numbers_tree, Prime * Prime, Prime, Initial_local_largest),
             Next_prime = get_next_prime(Sieved_numbers_tree, Prime),
@@ -128,12 +107,10 @@ sieve_thread_(Numbers_tree, Initial_local_largest) ->
     {Local_smallest, _} = gb_trees:smallest(Numbers_tree),
     receive
         {end_of_sieving} ->
-            %io:fwrite("s_t: end_of_sieving"),
             Numbers_tree;
         {become_main, Max_numb, Parent_pid} ->
             sieve_thread_main_(Numbers_tree, Local_smallest, Initial_local_largest, Max_numb, Parent_pid);
         {prime, Prime} ->
-            %io:fwrite("s_t: prime" ++ io_lib:format("~p", [Prime]) ++ "\n"),
             Prime_square = Prime * Prime,
             Deletion_base = if
                                 Local_smallest > Prime_square -> Local_smallest - (Local_smallest rem Prime);
@@ -187,7 +164,6 @@ gather_all_primes([Pid | Pids_rest]) ->
 threads_communication([Main_pid | Rest_pids], Max_numb) ->
     receive
         {end_of_main} ->
-            %io:fwrite("threads_communication: end_of_main\n"),
             case Rest_pids of
                 [] -> true;
                 [Next_main_pid | _] ->
@@ -195,7 +171,6 @@ threads_communication([Main_pid | Rest_pids], Max_numb) ->
                     threads_communication(Rest_pids, Max_numb)
             end;
         {sieving_definite_end} ->
-            %io:fwrite("threads_communication: sieving_definite_end\n"),
             send_message_to_threads(Rest_pids, {end_of_sieving}),
             receive
                 {end_of_main} -> true
@@ -213,10 +188,3 @@ sieve(Max_numb, Threads_no) ->
     [Main_pid | Rest_pids] = start_threads(Threads_number_ranges, Max_numb, Threads_no_final),
     threads_communication([Main_pid | Rest_pids], Max_numb),
     Primes = gather_all_primes([Main_pid | Rest_pids]).
-    %case lists:flatten(Numbers_rest) of
-        %[] -> Primes;
-        %Numbers_to_sieve ->
-            %io:fwrite(io_lib:format("~p", [Numbers_to_sieve]) ++ "\n"),
-            %Primes_rest = sieve(Max_numb, Numbers_to_sieve, Threads_no_final),
-            %All_primes = lists:merge(Primes, Primes_rest)
-    %end.

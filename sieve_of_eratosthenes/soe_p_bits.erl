@@ -20,7 +20,6 @@ get_numbers_as_bits({From, To}) ->
     <<0:Bits_quantity>>.
 
 set_num_in_bits({From, _}, Number, Numbers_as_bits) ->
-    %io:fwrite("set_bit: " ++ io_lib:format("~p~n", [[From, Number, Number - From]])),
     set_bit(Number - From, Numbers_as_bits).
 
 get_delete_start_base({From, _}, Step) ->
@@ -39,7 +38,6 @@ get_delete_start_base({From, _}, Step) ->
 
 delete_multiples(Numbers_as_bits, Numbers_range, Step) ->
     Start_base = get_delete_start_base(Numbers_range, Step),
-    %io:fwrite("delete_multiples: " ++ io_lib:format("~p~n", [[Start_base, Numbers_range, Step]])),
     delete_multiples_(Numbers_as_bits, Numbers_range, Start_base, Step).
 
 delete_multiples_(Numbers_as_bits, Numbers_range, Base, Step) ->
@@ -58,12 +56,10 @@ delete_2_3_multiples(Numbers_range, Numbers_as_bits) ->
     delete_multiples(Numbers_as_bits_without_2s, Numbers_range, 3).
 
 get_next_prime(Start_from, {_, To}, _) when Start_from > To -> 
-    %io:fwrite("get_next_prime \n"),
     no_more_primes;
 get_next_prime(Start_from, Numbers_range, Numbers_as_bits) ->
     {From, _} = Numbers_range,
     Nth_bit = get_bit(Start_from - From, Numbers_as_bits),
-    %io:fwrite("get_next_prime: Nth_bit " ++ io_lib:format("~p", [Nth_bit]) ++ "\n"),
     if
         Nth_bit == 0 ->
             Start_from;
@@ -76,7 +72,6 @@ get_all_primes_from_numbers_as_bits(Current_position, Numbers_as_bits, Numbers_r
     Nth_bit = get_bit(Current_position, Numbers_as_bits),
     {From, _} = Numbers_range,
     Next_primes = get_all_primes_from_numbers_as_bits(Current_position + 1, Numbers_as_bits, Numbers_range),
-    %io:fwrite("get_all_primes_from_numbers_as_bits: " ++ io_lib:format("~p~n", [[Current_position, Nth_bit, From]])),
     if
         Nth_bit =/= 0 ->
             Next_primes;
@@ -89,21 +84,14 @@ initialise_thread_data(Numbers_range) ->
     delete_2_3_multiples(Numbers_range, Numbers_as_bits).
 
 sieve_thread_main(Numbers_range, Max_numb, Parent_pid) ->
-    %io:fwrite("tutaj 2"),
-    %io:fwrite("sieve_thread_main: tree " ++ io_lib:format("~p", [Numbers_range]) ++ "\n"),
     Numbers_as_bits = initialise_thread_data(Numbers_range),
     {Prime, _} = Numbers_range,
     Sieved_numbers = sieve_thread_main_(Numbers_as_bits, Numbers_range, Prime, Max_numb, Parent_pid),
-    %io:fwrite("tutaj 101 \n"),
-    %io:fwrite("sieve_thread_main: primes " ++ io_lib:format("~p~n", [Sieved_numbers]) ++ "\n"),
     Primes = get_all_primes_from_numbers_as_bits(0, Sieved_numbers, Numbers_range),
-    %io:fwrite("sieve_thread_main: primes " ++ io_lib:format("~p", [Primes]) ++ "\n"),
-    %io:fwrite("tutaj 1"),
     Parent_pid ! {end_of_main},
     Parent_pid ! {primes, self(), Primes}.
 
 sieve_thread_main_(Numbers_as_bits, Numbers_range, Prime, Max_numb, Parent_pid) ->
-    %io:fwrite("sieve_thread_main_: prime " ++ io_lib:format("~p", [Prime]) ++ "\n"),
     if
         Prime == no_more_primes ->
             Numbers_as_bits;
@@ -111,7 +99,6 @@ sieve_thread_main_(Numbers_as_bits, Numbers_range, Prime, Max_numb, Parent_pid) 
             Parent_pid ! {sieving_definite_end},
             Numbers_as_bits;
         true ->
-            %io:fwrite("m_t: prime" ++ io_lib:format("~p", [Prime]) ++ "\n"),
             Parent_pid ! {prime, Prime},
             Sieved_numbers_as_bits = delete_multiples(Numbers_as_bits, Numbers_range, Prime),
             Next_prime = get_next_prime(Prime + 1, Numbers_range, Sieved_numbers_as_bits),
@@ -127,13 +114,11 @@ sieve_thread(Numbers_range, Parent_pid) ->
 sieve_thread_(Numbers_as_bits, Numbers_range) ->
     receive
         {end_of_sieving} ->
-            %io:fwrite("s_t: end_of_sieving"),
             Numbers_as_bits;
         {become_main, Max_numb, Parent_pid} ->
             Next_prime = get_next_prime(0, Numbers_range, Numbers_as_bits),
             sieve_thread_main_(Numbers_as_bits, Numbers_range, Next_prime, Max_numb, Parent_pid);
         {prime, Prime} ->
-            %io:fwrite("s_t: prime" ++ io_lib:format("~p", [Prime]) ++ "\n"),
             Sieved_numbers_as_bits = delete_multiples(Numbers_as_bits, Numbers_range, Prime),
             sieve_thread_(Sieved_numbers_as_bits, Numbers_range)
     end.
@@ -182,7 +167,6 @@ gather_all_primes([Pid | Pids_rest]) ->
 threads_communication([Main_pid | Rest_pids], Max_numb) ->
     receive
         {end_of_main} ->
-            %io:fwrite("threads_communication: end_of_main\n"),
             case Rest_pids of
                 [] -> true;
                 [Next_main_pid | _] ->
@@ -190,7 +174,6 @@ threads_communication([Main_pid | Rest_pids], Max_numb) ->
                     threads_communication(Rest_pids, Max_numb)
             end;
         {sieving_definite_end} ->
-            %io:fwrite("threads_communication: sieving_definite_end\n"),
             send_message_to_threads(Rest_pids, {end_of_sieving}),
             receive
                 {end_of_main} -> true
